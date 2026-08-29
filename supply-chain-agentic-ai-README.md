@@ -19,93 +19,139 @@ The architecture is intentionally divided into two planes:
 
 ## Architecture
 
-### End-to-End Architecture
+
+# 14. Complete Architecture
+
+## Online Runtime
 
 ```text
-                    ┌──────────────────────────────┐
-                    │       SUPPLY CHAIN USER      │
-                    │      Browser / Chat UI       │
-                    └──────────────┬───────────────┘
-                                   │
-                              SSO Login
-                                   │
-                                   ▼
-                    ┌──────────────────────────────┐
-                    │       Microsoft Entra ID      │
-                    │ Authentication + SSO          │
-                    │ Groups / Roles / Claims       │
-                    └──────────────┬───────────────┘
-                                   │
+                         SUPPLY CHAIN USER
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │   Browser UI    │
+                       │   Chat Window   │
+                       └────────┬────────┘
+                                │
+                         SSO / OIDC
+                                │
+                                ▼
+                       ┌─────────────────┐
+                       │  Microsoft      │
+                       │  Entra ID       │
+                       └────────┬────────┘
+                                │
                          OAuth/OIDC Token
-                                   │
-                                   ▼
-                    ┌──────────────────────────────┐
-                    │      GCP External LB         │
-                    │ TLS / Cloud Armor            │
-                    └──────────────┬───────────────┘
-                                   │
-                                   ▼
-                    ┌──────────────────────────────┐
-                    │           Apigee              │
-                    │                              │
-                    │ JWT Validation               │
-                    │ OAuth Policies               │
-                    │ Rate Limiting / Quota        │
-                    │ API Security                 │
-                    │ Request Validation            │
-                    │ Threat Protection             │
-                    └──────────────┬───────────────┘
-                                   │
-                                   ▼
-              ┌────────────────────────────────────────┐
-              │             Cloud Run                  │
-              │       Python / FastAPI Agent API       │
-              │                                        │
-              │ ┌────────────────────────────────────┐ │
-              │ │       Input Guardrails              │ │
-              │ └───────────────┬────────────────────┘ │
-              │                 ▼                      │
-              │ ┌────────────────────────────────────┐ │
-              │ │       Agent Orchestrator            │ │
-              │ │       Gemini / Vertex AI / ADK      │ │
-              │ └───────────────┬────────────────────┘ │
-              │                 │                      │
-              │       ┌─────────┴─────────┐            │
-              │       ▼                   ▼            │
-              │  RAG / Knowledge      Tool Agents      │
-              │     Retrieval                           │
-              │       │                   │            │
-              │       ▼                   ▼            │
-              │ Vertex AI Vector     Inventory API     │
-              │ Search              Purchase Order API │
-              │                     Transfer Order API │
-              │                     Supply Chain APIs  │
-              └────────────────────────────────────────┘
-                                   │
-                                   ▼
-                    ┌──────────────────────────┐
-                    │     Gemini Reasoning     │
-                    │ Evidence Correlation     │
-                    │ Investigation             │
-                    └──────────────┬───────────┘
-                                   │
-                                   ▼
-                    ┌──────────────────────────┐
-                    │    Output Guardrails     │
-                    │                          │
-                    │ Schema Validation        │
-                    │ Security Validation      │
-                    │ Responsible AI           │
-                    │ Sensitive Data Checks    │
-                    │ Business Rules            │
-                    └──────────────┬───────────┘
-                                   │
-                                   ▼
-                            Structured JSON
-                                   │
-                                   ▼
-                              Browser UI
+                                │
+                                ▼
+                  ┌──────────────────────────┐
+                  │ GCP External Load Balancer│
+                  │ Cloud Armor / TLS         │
+                  └────────────┬─────────────┘
+                               │
+                               ▼
+                       ┌───────────────┐
+                       │    Apigee     │
+                       │               │
+                       │ JWT Validation│
+                       │ OAuth         │
+                       │ Rate Limit    │
+                       │ Quota         │
+                       │ API Security  │
+                       └───────┬───────┘
+                               │
+                               ▼
+                  ┌──────────────────────────┐
+                  │       CLOUD RUN          │
+                  │       FastAPI            │
+                  │                          │
+                  │ ┌──────────────────────┐ │
+                  │ │   Input Guardrails   │ │
+                  │ └──────────┬───────────┘ │
+                  │            ▼             │
+                  │ ┌──────────────────────┐ │
+                  │ │  Agent Orchestrator  │ │
+                  │ │   Gemini / ADK        │ │
+                  │ └──────────┬───────────┘ │
+                  │            │             │
+                  │     ┌──────┴───────┐     │
+                  │     ▼              ▼     │
+                  │ RAG Agent       Tool     │
+                  │                 Agents   │
+                  └─────┬─────────────┬─────┘
+                        │             │
+                        ▼             ▼
+                ┌─────────────┐ ┌──────────────┐
+                │ Vertex AI   │ │ Enterprise   │
+                │ Vector      │ │ APIs         │
+                │ Search      │ │              │
+                │             │ │ Inventory    │
+                │ Supply      │ │ Purchase     │
+                │ Chain Docs  │ │ Transfer     │
+                └─────────────┘ └──────────────┘
+                        │             │
+                        └──────┬──────┘
+                               ▼
+                       ┌───────────────┐
+                       │ Gemini Agent  │
+                       │ Reasoning     │
+                       │ + Correlation │
+                       └───────┬───────┘
+                               │
+                               ▼
+                    ┌─────────────────────┐
+                    │ Output Guardrails   │
+                    │                     │
+                    │ Schema Validation   │
+                    │ Security            │
+                    │ Responsible AI      │
+                    │ Sensitive Data      │
+                    │ Business Rules      │
+                    └──────────┬──────────┘
+                               │
+                               ▼
+                         Structured JSON
+                               │
+                               ▼
+                         Browser Chat
 ```
+
+## Offline RAG Pipeline
+
+```text
+                 OFFLINE / PERIODIC RAG PIPELINE
+
+ Supply Chain Documents
+          │
+          ▼
+   GCP Workflow / Scheduler
+          │
+          ▼
+ Document Extraction / Parsing
+          │
+          ▼
+       Chunking
+          │
+          ▼
+ Metadata / Access Control
+          │
+          ▼
+ Embedding Model
+          │
+          ▼
+   Vector Embeddings
+          │
+          ▼
+ Vertex AI Vector Search
+          │
+          ▼
+      Vector Index
+          │
+          └──────────────► ONLINE AGENT
+```
+
+---
+
 
 ---
 
@@ -847,139 +893,6 @@ Summary          Security Validation
 This ensures that response summarization and security enforcement remain separate concerns.
 
 ---
-
-# 14. Complete Architecture
-
-## Online Runtime
-
-```text
-                         SUPPLY CHAIN USER
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │   Browser UI    │
-                       │   Chat Window   │
-                       └────────┬────────┘
-                                │
-                         SSO / OIDC
-                                │
-                                ▼
-                       ┌─────────────────┐
-                       │  Microsoft      │
-                       │  Entra ID       │
-                       └────────┬────────┘
-                                │
-                         OAuth/OIDC Token
-                                │
-                                ▼
-                  ┌──────────────────────────┐
-                  │ GCP External Load Balancer│
-                  │ Cloud Armor / TLS         │
-                  └────────────┬─────────────┘
-                               │
-                               ▼
-                       ┌───────────────┐
-                       │    Apigee     │
-                       │               │
-                       │ JWT Validation│
-                       │ OAuth         │
-                       │ Rate Limit    │
-                       │ Quota         │
-                       │ API Security  │
-                       └───────┬───────┘
-                               │
-                               ▼
-                  ┌──────────────────────────┐
-                  │       CLOUD RUN          │
-                  │       FastAPI            │
-                  │                          │
-                  │ ┌──────────────────────┐ │
-                  │ │   Input Guardrails   │ │
-                  │ └──────────┬───────────┘ │
-                  │            ▼             │
-                  │ ┌──────────────────────┐ │
-                  │ │  Agent Orchestrator  │ │
-                  │ │   Gemini / ADK        │ │
-                  │ └──────────┬───────────┘ │
-                  │            │             │
-                  │     ┌──────┴───────┐     │
-                  │     ▼              ▼     │
-                  │ RAG Agent       Tool     │
-                  │                 Agents   │
-                  └─────┬─────────────┬─────┘
-                        │             │
-                        ▼             ▼
-                ┌─────────────┐ ┌──────────────┐
-                │ Vertex AI   │ │ Enterprise   │
-                │ Vector      │ │ APIs         │
-                │ Search      │ │              │
-                │             │ │ Inventory    │
-                │ Supply      │ │ Purchase     │
-                │ Chain Docs  │ │ Transfer     │
-                └─────────────┘ └──────────────┘
-                        │             │
-                        └──────┬──────┘
-                               ▼
-                       ┌───────────────┐
-                       │ Gemini Agent  │
-                       │ Reasoning     │
-                       │ + Correlation │
-                       └───────┬───────┘
-                               │
-                               ▼
-                    ┌─────────────────────┐
-                    │ Output Guardrails   │
-                    │                     │
-                    │ Schema Validation   │
-                    │ Security            │
-                    │ Responsible AI      │
-                    │ Sensitive Data      │
-                    │ Business Rules      │
-                    └──────────┬──────────┘
-                               │
-                               ▼
-                         Structured JSON
-                               │
-                               ▼
-                         Browser Chat
-```
-
-## Offline RAG Pipeline
-
-```text
-                 OFFLINE / PERIODIC RAG PIPELINE
-
- Supply Chain Documents
-          │
-          ▼
-   GCP Workflow / Scheduler
-          │
-          ▼
- Document Extraction / Parsing
-          │
-          ▼
-       Chunking
-          │
-          ▼
- Metadata / Access Control
-          │
-          ▼
- Embedding Model
-          │
-          ▼
-   Vector Embeddings
-          │
-          ▼
- Vertex AI Vector Search
-          │
-          ▼
-      Vector Index
-          │
-          └──────────────► ONLINE AGENT
-```
-
----
-
 # 15. Example Business Scenario
 
 ### Question
