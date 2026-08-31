@@ -1,3 +1,4 @@
+#current progress  1. AI related readings completed
 # GCP Solution Architect & AI/ML Forward-Deployed Engineer
 prompt 
 ## 
