@@ -17,7 +17,8 @@ Trade-Off Analysis: Key design compromises and alternatives.
 
 Trending Technologies: Relevant, modern industry frameworks and cloud/AI patterns.
 
-Code Implementation: A concise, working code example." 
+Code Implementation: A concise, working code example.
+design patterns: precisely mention frequently used design patterns" 
 
 ------------------------------------------------------------------------
 
